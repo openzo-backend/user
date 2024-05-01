@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-deployment
+  labels:
+    app: user-deployment
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-deployment
+  template:
+    metadata:
+      labels:
+        app: user-deployment
+    spec:
+      containers:
+      - name: user-container
+        image: tanush128/user:latest
+        imagePullPolicy: Always
+       

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: usergrpc
+
+spec:
+  selector:
+    app: user-deployment
+  ports:
+    - targetPort: 50051
+      port: 50051
+     
+   
