@@ -1,15 +1,20 @@
-node {
+pipeline {
+    agent any
     def app
 
     stage('Clone repository') {
-      
+       steps{
 
         checkout scm
+       }      
+
     }
 
     stage('Build image') {
-  
-       app = docker.build("tanush128/user", "./user")
+       steps{
+
+       app = docker.build "tanush128/user:${env.BUILD_NUMBER}"
+       }
     }
 
     stage('Test image') {
@@ -21,14 +26,19 @@ node {
     }
 
     stage('Push image') {
-        
+        steps{
+
         docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
             app.push("${env.BUILD_NUMBER}")
+        }
         }
     }
     
     stage('Trigger ManifestUpdate') {
+        steps{
+
                 echo "triggering updatemanifestjob"
                 build job: 'updatemanifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+        }
         }
 }
