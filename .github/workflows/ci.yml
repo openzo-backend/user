@@ -50,7 +50,7 @@ jobs:
         run: |
           git config --global user.email "tanush@myyahoo.com"
           git config --global user.name "tanush-128"
-          git clone https://tanush-128:${{secrets.GITHUB_TOKEN}}github.com/tanush-128/openzo_backend_cd.git
+          git clone https://tanush-128:${{secrets.GITHUB_TOKEN}}@github.com/tanush-128/openzo_backend_cd.git
           cd  openzo_backend_cd/user
           sed -i 's+tanush128/user.*+tanush128/user:${{ steps.increment_version.outputs.version }}-${{ steps.git_hash.outputs.hash }}+g' deployment.yml
           git add .
