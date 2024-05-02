@@ -1,4 +1,4 @@
-node {
+pipeline {
     def app
 
     stage('Clone repository') {
@@ -9,7 +9,7 @@ node {
 
     stage('Build image') {
   
-       app = docker.build("tanush128/user")
+       app = docker.build("tanush128/user", "./user")
     }
 
     stage('Test image') {
