@@ -1,6 +1,7 @@
 pipeline {
     agent any
     def app
+stages{
 
     stage('Clone repository') {
        steps{
@@ -41,4 +42,5 @@ pipeline {
                 build job: 'updatemanifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
         }
         }
+}
 }
