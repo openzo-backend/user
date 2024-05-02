@@ -1,5 +1,5 @@
 # Use an official Go runtime as a parent image
-FROM golang:latest
+FROM --platform=linux/arm64 golang:latest
 
 # Set the working directory to /go/src/app
 WORKDIR /go/src/app
