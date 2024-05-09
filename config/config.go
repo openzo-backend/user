@@ -7,10 +7,10 @@ import (
 )
 
 type Config struct {
-	MODE     string `mapstructure:"MODE"`
-	DB_URL   string `mapstructure:"DB_URL"`
-	HTTPPort string `mapstructure:"HTTP_PORT"`
-	GRPCPort string `mapstructure:"GRPC_PORT"`
+	MODE             string `mapstructure:"MODE"`
+	DB_URL           string `mapstructure:"DB_URL"`
+	HTTPPort         string `mapstructure:"HTTP_PORT"`
+	GRPCPort         string `mapstructure:"GRPC_PORT"`
 	UserGrpc         string `mapstructure:"USER_GRPC"`
 	ImageGrpc        string `mapstructure:"IMAGE_GRPC"`
 	StoreGrpc        string `mapstructure:"STORE_GRPC"`
@@ -19,7 +19,7 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	viper.SetConfigFile("../config/config.yaml")
+	viper.SetConfigFile("./config/config.yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)

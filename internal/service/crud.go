@@ -3,26 +3,18 @@ package service
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/tanush-128/openzo_backend/user/internal/models"
-	"github.com/tanush-128/openzo_backend/user/internal/utils"
 	// "github.com/tanush-128/openzo_backend/user/internal/repository"
 )
 
 type CreateUserRequest struct {
-	Email    string `json:"email"` // Use json tag for proper JSON marshalling
-	Name     string `json:"name"`
-	Password string `json:"password"`
+	Phone string `json:"phone" binding:"required"`
 }
 
 func (s *userService) CreateUser(ctx *gin.Context, req CreateUserRequest) (models.User, error) {
 	// Validate user data (implement validation logic)
-	password, err := utils.HashPassword(req.Password)
-	if err != nil {
-		return models.User{}, err
-	}
+
 	user := models.User{
-		Email:    req.Email,
-		Name:     req.Name,
-		Password: password,
+		Phone: req.Phone,
 	}
 
 	createdUser, err := s.userRepository.CreateUser(user)

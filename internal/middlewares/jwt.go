@@ -1,8 +1,6 @@
 package middlewares
 
 import (
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -30,7 +28,6 @@ func JwtMiddleware(c *gin.Context) {
 	c.Next()
 }
 
-
 func ValidateJwtToken(token string) (map[string]interface{}, error) {
 	claims := jwt.MapClaims{}
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
@@ -39,8 +36,8 @@ func ValidateJwtToken(token string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if claims["exp"].(float64) < float64(time.Now().Unix()) {
-		return nil, err
-	}
+	// if claims["exp"].(float64) < float64(time.Now().Unix()) {
+	// 	return nil, err
+	// }
 	return claims, nil
 }

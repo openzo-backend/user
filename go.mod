@@ -2,6 +2,8 @@ module github.com/tanush-128/openzo_backend/user
 
 go 1.21.6
 
+toolchain go1.21.0
+
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/spf13/viper v1.18.2

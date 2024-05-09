@@ -7,7 +7,8 @@ package models
 // User represents a user in the system
 type User struct {
 	ID       string `gorm:"primaryKey"`
-	Email    string `gorm:"unique"`
+	Email    string
 	Name     string
 	Password string
+	Phone    string `binding:"required" gorm:"unique"`
 }

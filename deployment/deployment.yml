@@ -18,5 +18,5 @@ spec:
       containers:
       - name: user-container
         image: tanush128/user:latest
-        imagePullPolicy: Always
+        
        

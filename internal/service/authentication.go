@@ -7,24 +7,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tanush-128/openzo_backend/user/internal/models"
-	"github.com/tanush-128/openzo_backend/user/internal/utils"
 )
 
 type UserSignInRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Mobile string `json:"mobile"`
+	Otp    string `json:"otp"`
 }
 
 func (s *userService) UserSignIn(ctx *gin.Context, req UserSignInRequest) (string, error) {
-	user, err := s.userRepository.GetUserByEmail(req.Email)
-
-	if err != nil {
-		return "", err
+	// Validate user data (implement validation logic)
+	if req.Mobile == "" {
+		return "", errors.New("invalid request")
 	}
 
-	err = utils.CheckPasswordHash(req.Password, user.Password)
+	// Get user by mobile
+	user, err := s.userRepository.GetUserByMobile(req.Mobile)
 	if err != nil {
-		return "", errors.New("invalid password")
+		return "", err
 	}
 
 	// Create JWT token
@@ -48,8 +47,6 @@ func (s *userService) GetUserWithJWT(ctx *gin.Context, token string) (models.Use
 
 	return user, nil
 }
-
-
 
 func CreateJwtToken(id string) (string, error) {
 	claims := jwt.MapClaims{}
