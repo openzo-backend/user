@@ -1,5 +1,5 @@
 # Use an official Go runtime as a parent image
-FROM  golang:latest
+FROM --platform=linux/arm64  golang:latest
 
 # Set the working directory to /go/src/app
 WORKDIR /go/src/app
@@ -9,10 +9,11 @@ COPY go.mod .
 COPY go.sum .
 
 # Download and install Go module dependencies
-RUN go mod tidy
+RUN go mod tidy && go mod vendor
 
 # Copy the rest of the application source code
 COPY . .
+
 
 # Build the Go application
 RUN go build -o main .
