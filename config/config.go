@@ -20,8 +20,8 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	// viper.SetConfigFile("./config/config.yaml")
-	viper.SetConfigFile("/go/src/app/config/config.yaml")
+	viper.SetConfigFile("./config/config.yaml")
+	// viper.SetConfigFile("/go/src/app/config/config.yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
