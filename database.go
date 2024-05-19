@@ -32,5 +32,7 @@ func connectToDB(cfg *config.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 	db.Migrator().AutoMigrate(&models.User{})
+	db.Migrator().AutoMigrate(&models.UserData{})
+
 	return db, nil
 }
