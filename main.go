@@ -19,11 +19,7 @@ type Server struct {
 	userService    service.UserService
 }
 
-// var UserClient userpb.UserServiceClient
-
 func main() {
-	// cfgPath := flag.String("config", "./config.yml", "./config.yml")
-	// flag.Parse()
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -36,12 +32,15 @@ func main() {
 	}
 
 	userRepository := repository.NewUserRepository(db)
+	userDataRepository := repository.NewUserDataRepository(db)
+
 	userService := service.NewUserService(userRepository)
+	userDataService := service.NewUserDataService(userDataRepository)
 
 	go service.GrpcServer(cfg, &service.Server{UserRepository: userRepository, UserService: userService})
 	// Initialize HTTP server with Gin
 	router := gin.Default()
-	handler := handlers.NewHandler(&userService)
+	handler := handlers.NewHandler(&userService, &userDataService)
 
 	router.GET("ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -53,6 +52,10 @@ func main() {
 	router.GET("/email/:email", handler.GetUserByEmail)
 	router.PUT("/", handler.UpdateUser)
 	router.POST("/signin", handler.UserSignIn)
+	router.POST("/userdata", handler.CreateUserData)
+	router.GET("/userdata/:id", handler.GetUserDataByID)
+	router.PUT("/userdata", handler.UpdateUserData)
+	router.DELETE("/userdata/:id", handler.DeleteUserData)
 	router.Use(middlewares.JwtMiddleware)
 	router.GET("/jwt", handler.GetUserWithJWT)
 
