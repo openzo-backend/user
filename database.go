@@ -13,7 +13,7 @@ import (
 
 func connectToDB(cfg *config.Config) (*gorm.DB, error) {
 
-	if cfg.MODE == "prdoduction" {
+	if cfg.MODE == "production" {
 		dsn := cfg.DB_URL
 
 		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
