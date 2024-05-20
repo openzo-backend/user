@@ -1,6 +1,6 @@
-DB_URL  : "not required, using"
+DB_URL  : "admin:fNsZCbxEMrDNMlPTRthx@tcp(openzo.cro8kayema45.ap-south-1.rds.amazonaws.com)/openzo?charset=utf8&parseTime=True&loc=Local"
 DB_NAME: "user_service_db"
 HTTP_PORT : "8080"
 GRPC_PORT : "50051"
-MODE : "dev"
+MODE : "production"
 
