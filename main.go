@@ -92,6 +92,8 @@ func main() {
 type Notification struct {
 	Message  string `json:"message"`
 	FCMToken string `json:"fcm_token"`
+	Data     string `json:"data"`
+	Topic    string `json:"topic"`
 }
 
 func consumeKafka(userDataRepo repository.UserDataRepository, notificationProducer *kafka.Producer) {
@@ -126,6 +128,7 @@ func consumeKafka(userDataRepo repository.UserDataRepository, notificationProduc
 				fmt.Println("Error getting FCM token: ", err)
 			}
 			fcm := userData.NotificationToken
+
 			fmt.Println("FCM token: ", fcm)
 
 			notificationMessage := ""
@@ -147,6 +150,7 @@ func consumeKafka(userDataRepo repository.UserDataRepository, notificationProduc
 			notificationMsg, _ := json.Marshal(Notification{
 				Message:  notificationMessage,
 				FCMToken: fcm,
+				Data:     fmt.Sprintf(`{"order_id": "%s", "status": "%s"}`, order.ID, order.OrderStatus),
 			})
 
 			notificationTopic := "notification"
