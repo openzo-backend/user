@@ -92,23 +92,31 @@ func main() {
 type Notification struct {
 	Message  string `json:"message"`
 	FCMToken string `json:"fcm_token"`
-	Data     string `json:"data"`
-	Topic    string `json:"topic"`
+	Data     string `json:"data,omitempty"`
+	Topic    string `json:"topic,omitempty"`
+}
+
+type data struct {
+	// OrderStatus string `json:"order_status"`
+	ID          string          `json:"id"`
+	StoreID     string          `json:"store_id"`
+	Customer    models.Customer `json:"customer"`
+	OrderStatus string          `json:"status"`
 }
 
 func consumeKafka(userDataRepo repository.UserDataRepository, notificationProducer *kafka.Producer) {
 	conf := ReadConfig()
-	topic := "order-status-updates"
+	topic := "sales"
 
 	// sets the consumer group ID and offset
-	conf["group.id"] = "go-group-1"
-	conf["auto.offset.reset"] = "earliest"
+	conf["group.id"] = "UserGroup"
+	conf["auto.offset.reset"] = "latest"
 
 	// creates a new consumer and subscribes to your topic
 	consumer, _ := kafka.NewConsumer(&conf)
 	consumer.SubscribeTopics([]string{topic}, nil)
 
-	var order models.OnlineOrder
+	var order data
 
 	run := true
 	for run {
@@ -117,11 +125,12 @@ func consumeKafka(userDataRepo repository.UserDataRepository, notificationProduc
 		switch ev := e.(type) {
 		case *kafka.Message:
 			// application-specific processing
+			log.Printf("Message on %s: %s\n", ev.TopicPartition, string(ev.Value))
 			err := json.Unmarshal(ev.Value, &order)
 			if err != nil {
 				fmt.Println("Error unmarshalling JSON: ", err)
 			}
-			fmt.Println("Order received: ", order)
+			fmt.Printf("Order received: %+v ", order)
 
 			userData, err := userDataRepo.GetUserDataByID(order.Customer.UserDataId)
 			if err != nil {
@@ -133,15 +142,15 @@ func consumeKafka(userDataRepo repository.UserDataRepository, notificationProduc
 
 			notificationMessage := ""
 
-			if order.OrderStatus == models.OrderAccepted {
+			if order.OrderStatus == "accepted" {
 				notificationMessage = "Your order has been accepted"
-			} else if order.OrderStatus == models.OrderCancelled {
+			} else if order.OrderStatus == "cancelled" {
 				notificationMessage = "Your order has been cancelled"
-			} else if order.OrderStatus == models.OrderOutForDel {
+			} else if order.OrderStatus == "out_for_delivery" {
 				notificationMessage = "Your order is out for delivery"
-			} else if order.OrderStatus == models.OrderDelivered {
+			} else if order.OrderStatus == "delivered" {
 				notificationMessage = "Your order has been delivered"
-			} else if order.OrderStatus == models.OrderRejected {
+			} else if order.OrderStatus == "rejected" {
 				notificationMessage = "Your order has been rejected"
 			} else {
 				notificationMessage = "Your order has been placed"
