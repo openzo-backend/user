@@ -80,6 +80,7 @@ func main() {
 	router.POST("/signin", handler.UserSignIn)
 	router.POST("/userdata", handler.CreateUserData)
 	router.GET("/userdata/:id", handler.GetUserDataByID)
+	router.GET("/userdata/user/:id", handler.GetUserDataByUserID)
 	router.PUT("/userdata", handler.UpdateUserData)
 	router.DELETE("/userdata/:id", handler.DeleteUserData)
 	router.Use(middlewares.JwtMiddleware)

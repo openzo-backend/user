@@ -9,6 +9,8 @@ import (
 type UserDataRepository interface {
 	CreateUserData(user models.UserData) (models.UserData, error)
 	GetUserDataByID(id string) (models.UserData, error)
+	GetUserDataByUserID(id string) (models.UserData, error)
+
 	UpdateUserData(user models.UserData) (models.UserData, error)
 	DeleteUserData(id string) error
 	// Add more methods for other user operations (GetUserByEmail, UpdateUser, etc.)
@@ -37,6 +39,16 @@ func (r *userDataRepository) CreateUserData(user models.UserData) (models.UserDa
 func (r *userDataRepository) GetUserDataByID(id string) (models.UserData, error) {
 	var user models.UserData
 	tx := r.db.Where("id = ?", id).First(&user)
+	if tx.Error != nil {
+		return models.UserData{}, tx.Error
+	}
+
+	return user, nil
+}
+
+func (r *userDataRepository) GetUserDataByUserID(id string) (models.UserData, error) {
+	var user models.UserData
+	tx := r.db.Where("user_id = ?", id).First(&user)
 	if tx.Error != nil {
 		return models.UserData{}, tx.Error
 	}

@@ -130,6 +130,18 @@ func (h *Handler) GetUserDataByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, userData)
 }
 
+func (h *Handler) GetUserDataByUserID(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	userData, err := h.userDataService.GetUserDataByUserID(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, userData)
+}
+
 func (h *Handler) UpdateUserData(ctx *gin.Context) {
 	var userData models.UserData
 	if err := ctx.BindJSON(&userData); err != nil {

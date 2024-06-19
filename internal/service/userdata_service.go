@@ -14,6 +14,7 @@ type UserDataService interface {
 	GetUserDataByID(ctx *gin.Context, id string) (models.UserData, error)
 	UpdateUserData(ctx *gin.Context, req models.UserData) (models.UserData, error)
 	DeleteUserData(ctx *gin.Context, id string) error
+	GetUserDataByUserID(ctx *gin.Context, id string) (models.UserData, error)
 }
 
 type userDataService struct {
@@ -43,6 +44,10 @@ func (s *userDataService) CreateUserData(ctx *gin.Context, req models.UserData) 
 func (s *userDataService) GetUserDataByID(ctx *gin.Context, id string) (models.UserData, error) {
 
 	return s.userDataRepository.GetUserDataByID(id)
+}
+
+func (s *userDataService) GetUserDataByUserID(ctx *gin.Context, id string) (models.UserData, error) {
+	return s.userDataRepository.GetUserDataByUserID(id)
 }
 
 func (s *userDataService) UpdateUserData(ctx *gin.Context, req models.UserData) (models.UserData, error) {
