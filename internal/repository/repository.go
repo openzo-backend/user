@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/tanush-128/openzo_backend/user/internal/models"
 	"gorm.io/gorm"
@@ -10,7 +12,7 @@ type UserRepository interface {
 	CreateUser(user models.User) (models.User, error)
 	GetUserByID(id string) (models.User, error)
 	GetUserByEmail(email string) (models.User, error)
-	GetUserByMobile(mobile string) (models.User, error)	
+	GetUserByMobile(mobile string) (models.User, error)
 	UpdateUser(user models.User) (models.User, error)
 	// Add more methods for other user operations (GetUserByEmail, UpdateUser, etc.)
 
@@ -31,7 +33,7 @@ func (r *userRepository) CreateUser(user models.User) (models.User, error) {
 		&user2, "phone = ?", user.Phone,
 	)
 	if user2.Phone != "" {
-		return models.User{}, nil
+		return models.User{}, errors.New("user already exists")
 	}
 
 	user.ID = uuid.New().String()
@@ -71,7 +73,7 @@ func (r *userRepository) GetUserByMobile(mobile string) (models.User, error) {
 	if tx.Error != nil {
 		return models.User{}, tx.Error
 	}
-	
+
 	return user, nil
 }
 

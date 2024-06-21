@@ -11,7 +11,7 @@ type CreateUserRequest struct {
 }
 
 func (s *userService) CreateUser(ctx *gin.Context, req CreateUserRequest) (models.User, error) {
-	// Validate user data (implement validation logic)
+
 
 	user := models.User{
 		Phone: req.Phone,
