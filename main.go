@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tanush-128/openzo_backend/user/config"
 	handlers "github.com/tanush-128/openzo_backend/user/internal/api"
 	"github.com/tanush-128/openzo_backend/user/internal/middlewares"
@@ -21,6 +24,31 @@ type Server struct {
 	userpb.UserServiceServer
 	userRepository repository.UserRepository
 	userService    service.UserService
+}
+
+// Define Prometheus metrics
+var (
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"path", "method"},
+	)
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Histogram of request durations",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"path", "method"},
+	)
+)
+
+func init() {
+	// Register Prometheus metrics
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(httpRequestDuration)
 }
 
 func main() {
@@ -68,26 +96,44 @@ func main() {
 	router := gin.Default()
 	handler := handlers.NewHandler(&userService, &userDataService)
 
-	router.GET("ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
+	// Prometheus metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	// Define routes
+	router.GET("ping", measureMetrics("ping", "GET", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
 			"message": "pong v3 trying to deploy",
 		})
-	})
-	router.POST("/", handler.CreateUser)
-	router.GET("/:id", handler.GetUserByID)
-	router.GET("/email/:email", handler.GetUserByEmail)
-	router.PUT("/", handler.UpdateUser)
-	router.POST("/signin", handler.UserSignIn)
-	router.POST("/userdata", handler.CreateUserData)
-	router.GET("/userdata/:id", handler.GetUserDataByID)
-	router.GET("/userdata/user/:id", handler.GetUserDataByUserID)
-	router.PUT("/userdata", handler.UpdateUserData)
-	router.DELETE("/userdata/:id", handler.DeleteUserData)
+	}))
+	router.POST("/", measureMetrics("/", "POST", handler.CreateUser))
+	router.GET("/:id", measureMetrics("/:id", "GET", handler.GetUserByID))
+	router.GET("/email/:email", measureMetrics("/email/:email", "GET", handler.GetUserByEmail))
+	router.PUT("/", measureMetrics("/", "PUT", handler.UpdateUser))
+	router.POST("/signin", measureMetrics("/signin", "POST", handler.UserSignIn))
+	router.POST("/userdata", measureMetrics("/userdata", "POST", handler.CreateUserData))
+	router.GET("/userdata/:id", measureMetrics("/userdata/:id", "GET", handler.GetUserDataByID))
+	router.GET("/userdata/user/:id", measureMetrics("/userdata/user/:id", "GET", handler.GetUserDataByUserID))
+	router.PUT("/userdata", measureMetrics("/userdata", "PUT", handler.UpdateUserData))
+	router.DELETE("/userdata/:id", measureMetrics("/userdata/:id", "DELETE", handler.DeleteUserData))
 	router.Use(middlewares.JwtMiddleware)
-	router.GET("/jwt", handler.GetUserWithJWT)
+	router.GET("/jwt", measureMetrics("/jwt", "GET", handler.GetUserWithJWT))
 
+	// Start server
 	router.Run(fmt.Sprintf(":%s", cfg.HTTPPort))
 
+}
+
+func measureMetrics(path string, method string, handlerFunc gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		timer := prometheus.NewTimer(httpRequestDuration.WithLabelValues(path, method))
+		defer timer.ObserveDuration()
+
+		// Increment counter
+		httpRequestsTotal.WithLabelValues(path, method).Inc()
+
+		// Call the handler
+		handlerFunc(c)
+	}
 }
 
 type Notification struct {
