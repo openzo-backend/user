@@ -65,9 +65,11 @@ func main() {
 
 	userRepository := repository.NewUserRepository(db)
 	userDataRepository := repository.NewUserDataRepository(db)
+	otpRepository := repository.NewOTPRepository(db)
 
 	userService := service.NewUserService(userRepository)
 	userDataService := service.NewUserDataService(userDataRepository)
+	otpService := service.NewOTPService(otpRepository)
 
 	conf := ReadConfig()
 	p, _ := kafka.NewProducer(&conf)
@@ -95,6 +97,7 @@ func main() {
 	// Initialize HTTP server with Gin
 	router := gin.Default()
 	handler := handlers.NewHandler(&userService, &userDataService)
+	otp_handler := handlers.NewOTPHandler(&otpService)
 
 	// Prometheus metrics endpoint
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
@@ -115,6 +118,8 @@ func main() {
 	router.GET("/userdata/user/:id", measureMetrics("/userdata/user/:id", "GET", handler.GetUserDataByUserID))
 	router.PUT("/userdata", measureMetrics("/userdata", "PUT", handler.UpdateUserData))
 	router.DELETE("/userdata/:id", measureMetrics("/userdata/:id", "DELETE", handler.DeleteUserData))
+	router.POST("/otp", measureMetrics("/otp", "POST", otp_handler.GenerateOTP))
+	router.POST("/otp/verify", measureMetrics("/otp/verify", "POST", otp_handler.VerifyOTP))
 	router.Use(middlewares.JwtMiddleware)
 	router.GET("/jwt", measureMetrics("/jwt", "GET", handler.GetUserWithJWT))
 

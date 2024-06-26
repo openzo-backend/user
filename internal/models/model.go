@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // import "github.com/google/uuid"
 
 // import
@@ -11,6 +13,13 @@ type User struct {
 	Name     string
 	Password string
 	Phone    string `binding:"required" gorm:"unique"`
+}
+
+type OTP struct {
+	ID        string `gorm:"primaryKey"`
+	Phone     string
+	HashedOTP string
+	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
 type UserData struct {
