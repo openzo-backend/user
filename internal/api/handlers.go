@@ -9,28 +9,30 @@ import (
 )
 
 type Handler struct {
-	userService     service.UserService
-	userDataService service.UserDataService
+	userService service.UserService
 }
 
-func NewHandler(userService *service.UserService, userDataService *service.UserDataService) *Handler {
-	return &Handler{userService: *userService, userDataService: *userDataService}
+func NewHandler(userService *service.UserService) *Handler {
+	return &Handler{userService: *userService}
 }
 
 func (h *Handler) CreateUser(ctx *gin.Context) {
-	var user service.CreateUserRequest
+	var user models.User
 	if err := ctx.BindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	createdUser, err := h.userService.CreateUser(ctx, user)
+	createdUser, token, err := h.userService.CreateUser(ctx, user)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, createdUser)
+	ctx.JSON(http.StatusCreated, gin.H{
+		"user":  createdUser,
+		"token": token,
+	})
 }
 
 func (h *Handler) GetUserByID(ctx *gin.Context) {
@@ -102,70 +104,3 @@ func (h *Handler) GetUserWithJWT(ctx *gin.Context) {
 }
 
 // Add more handlers for other user operations (GetUser, UpdateUser, etc.)
-func (h *Handler) CreateUserData(ctx *gin.Context) {
-	var userData models.UserData
-	if err := ctx.BindJSON(&userData); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	createdUserData, err := h.userDataService.CreateUserData(ctx, userData)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, createdUserData)
-}
-
-func (h *Handler) GetUserDataByID(ctx *gin.Context) {
-	id := ctx.Param("id")
-
-	userData, err := h.userDataService.GetUserDataByID(ctx, id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, userData)
-}
-
-func (h *Handler) GetUserDataByUserID(ctx *gin.Context) {
-	id := ctx.Param("id")
-
-	userData, err := h.userDataService.GetUserDataByUserID(ctx, id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, userData)
-}
-
-func (h *Handler) UpdateUserData(ctx *gin.Context) {
-	var userData models.UserData
-	if err := ctx.BindJSON(&userData); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	updatedUserData, err := h.userDataService.UpdateUserData(ctx, userData)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, updatedUserData)
-}
-
-func (h *Handler) DeleteUserData(ctx *gin.Context) {
-	id := ctx.Param("id")
-
-	err := h.userDataService.DeleteUserData(ctx, id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "User data deleted successfully"})
-}

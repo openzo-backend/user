@@ -9,7 +9,7 @@ import (
 type UserService interface {
 
 	//CRUD
-	CreateUser(ctx *gin.Context, req CreateUserRequest) (models.User, error)
+	CreateUser(ctx *gin.Context, req models.User) (models.User, string, error)
 	GetUserByID(ctx *gin.Context, id string) (models.User, error)
 	GetUserByEmail(ctx *gin.Context, email string) (models.User, error)
 	UpdateUser(ctx *gin.Context, req models.User) (models.User, error)
@@ -26,3 +26,4 @@ type userService struct {
 func NewUserService(userRepository repository.UserRepository) UserService {
 	return &userService{userRepository: userRepository}
 }
+

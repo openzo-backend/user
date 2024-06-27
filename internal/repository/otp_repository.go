@@ -15,6 +15,7 @@ import (
 type OTPRepository interface {
 	CreateOTP(otp models.OTP) (models.OTP, error)
 	GetOTPByID(id string) (models.OTP, error)
+	DeleteOTP(id string) error
 }
 
 type otpRepository struct {
@@ -44,4 +45,14 @@ func (r *otpRepository) GetOTPByID(id string) (models.OTP, error) {
 	}
 
 	return otp, nil
+}
+
+
+func (r *otpRepository) DeleteOTP(id string) error {
+	tx := r.db.Where("id = ?", id).Delete(&models.OTP{})
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
 }

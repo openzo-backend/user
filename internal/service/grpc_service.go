@@ -9,6 +9,7 @@ import (
 	"github.com/tanush-128/openzo_backend/user/config"
 	"github.com/tanush-128/openzo_backend/user/internal/middlewares"
 	userpb "github.com/tanush-128/openzo_backend/user/internal/pb"
+
 	// "github.com/tanush-128/openzo_backend/store/internal/pb"
 	"github.com/tanush-128/openzo_backend/user/internal/repository"
 
@@ -53,7 +54,7 @@ func (s *Server) GetUserWithJWT(ctx context.Context, req *userpb.Token) (*userpb
 
 	return &userpb.User{
 		Id:    user.ID,
-		Email: user.Email,
-		Name:  user.Name,
+		Email: *user.Email,
+		Name:  *user.Name,
 	}, nil
 }

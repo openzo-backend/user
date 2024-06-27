@@ -23,6 +23,7 @@ type OTPVerifyRequest struct {
 	PhoneNo        string `json:"phone_no"`
 	OTP            string `json:"otp"`
 	VerificationId string `json:"verification_id"`
+	UserID         string `json:"user_id"`
 }
 
 func (h *OTPHandler) GenerateOTP(ctx *gin.Context) {
@@ -48,11 +49,11 @@ func (h *OTPHandler) VerifyOTP(ctx *gin.Context) {
 		return
 	}
 
-	verified, err := h.otpService.VerifyOTP(ctx, otpVerifyRequest.PhoneNo, otpVerifyRequest.VerificationId, otpVerifyRequest.OTP)
+	token, err := h.otpService.VerifyOTP(ctx, otpVerifyRequest.PhoneNo, otpVerifyRequest.VerificationId, otpVerifyRequest.OTP, otpVerifyRequest.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, verified)
+	ctx.JSON(http.StatusOK, gin.H{"token": token})
 }

@@ -64,12 +64,12 @@ func main() {
 	}
 
 	userRepository := repository.NewUserRepository(db)
-	userDataRepository := repository.NewUserDataRepository(db)
+
 	otpRepository := repository.NewOTPRepository(db)
 
 	userService := service.NewUserService(userRepository)
-	userDataService := service.NewUserDataService(userDataRepository)
-	otpService := service.NewOTPService(otpRepository)
+
+	otpService := service.NewOTPService(otpRepository, userRepository)
 
 	conf := ReadConfig()
 	p, _ := kafka.NewProducer(&conf)
@@ -91,12 +91,12 @@ func main() {
 		}
 	}()
 
-	go consumeKafka(userDataRepository, p)
+	go consumeKafka(userRepository, p)
 
 	go service.GrpcServer(cfg, &service.Server{UserRepository: userRepository, UserService: userService})
 	// Initialize HTTP server with Gin
 	router := gin.Default()
-	handler := handlers.NewHandler(&userService, &userDataService)
+	handler := handlers.NewHandler(&userService)
 	otp_handler := handlers.NewOTPHandler(&otpService)
 
 	// Prometheus metrics endpoint
@@ -110,16 +110,13 @@ func main() {
 	}))
 	router.POST("/", measureMetrics("/", "POST", handler.CreateUser))
 	router.GET("/:id", measureMetrics("/:id", "GET", handler.GetUserByID))
-	router.GET("/email/:email", measureMetrics("/email/:email", "GET", handler.GetUserByEmail))
 	router.PUT("/", measureMetrics("/", "PUT", handler.UpdateUser))
+	router.GET("/email/:email", measureMetrics("/email/:email", "GET", handler.GetUserByEmail))
 	router.POST("/signin", measureMetrics("/signin", "POST", handler.UserSignIn))
-	router.POST("/userdata", measureMetrics("/userdata", "POST", handler.CreateUserData))
-	router.GET("/userdata/:id", measureMetrics("/userdata/:id", "GET", handler.GetUserDataByID))
-	router.GET("/userdata/user/:id", measureMetrics("/userdata/user/:id", "GET", handler.GetUserDataByUserID))
-	router.PUT("/userdata", measureMetrics("/userdata", "PUT", handler.UpdateUserData))
-	router.DELETE("/userdata/:id", measureMetrics("/userdata/:id", "DELETE", handler.DeleteUserData))
+
 	router.POST("/otp", measureMetrics("/otp", "POST", otp_handler.GenerateOTP))
 	router.POST("/otp/verify", measureMetrics("/otp/verify", "POST", otp_handler.VerifyOTP))
+
 	router.Use(middlewares.JwtMiddleware)
 	router.GET("/jwt", measureMetrics("/jwt", "GET", handler.GetUserWithJWT))
 
@@ -156,13 +153,13 @@ type data struct {
 	OrderStatus string          `json:"status"`
 }
 
-func consumeKafka(userDataRepo repository.UserDataRepository, notificationProducer *kafka.Producer) {
+func consumeKafka(userRepo repository.UserRepository, notificationProducer *kafka.Producer) {
 	conf := ReadConfig()
 	topic := "sales"
 
 	// sets the consumer group ID and offset
 	conf["group.id"] = "UserGroup"
-	conf["auto.offset.reset"] = "latest"
+	conf["auto.offset.reset"] = "earliest"
 
 	// creates a new consumer and subscribes to your topic
 	consumer, _ := kafka.NewConsumer(&conf)
@@ -184,7 +181,7 @@ func consumeKafka(userDataRepo repository.UserDataRepository, notificationProduc
 			}
 			fmt.Printf("Order received: %+v ", order)
 
-			userData, err := userDataRepo.GetUserDataByID(order.Customer.UserDataId)
+			userData, err := userRepo.GetUserByID(order.Customer.UserDataId)
 			if err != nil {
 				fmt.Println("Error getting FCM token: ", err)
 			}
@@ -210,7 +207,7 @@ func consumeKafka(userDataRepo repository.UserDataRepository, notificationProduc
 
 			notificationMsg, _ := json.Marshal(Notification{
 				Message:  notificationMessage,
-				FCMToken: fcm,
+				FCMToken: *fcm,
 				Data:     fmt.Sprintf(`{"order_id": "%s", "status": "%s"}`, order.ID, order.OrderStatus),
 			})
 
