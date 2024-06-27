@@ -18,8 +18,8 @@ message Token {
 
 message User {
   string id = 1;
-  string email = 2;
-  string name = 3;
+  string phone = 3;
+  bool is_verified = 4;
 }
 
 // To generate the go code from the proto file, run the following command

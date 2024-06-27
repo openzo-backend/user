@@ -94,6 +94,8 @@ func main() {
 	go consumeKafka(userRepository, p)
 
 	go service.GrpcServer(cfg, &service.Server{UserRepository: userRepository, UserService: userService})
+
+	
 	// Initialize HTTP server with Gin
 	router := gin.Default()
 	handler := handlers.NewHandler(&userService)

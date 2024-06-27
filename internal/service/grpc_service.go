@@ -53,8 +53,8 @@ func (s *Server) GetUserWithJWT(ctx context.Context, req *userpb.Token) (*userpb
 	}
 
 	return &userpb.User{
-		Id:    user.ID,
-		Email: *user.Email,
-		Name:  *user.Name,
+		Id:         user.ID,
+		Phone:      user.Phone,
+		IsVerified: user.IsVerified,
 	}, nil
 }

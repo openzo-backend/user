@@ -13,17 +13,19 @@ type CreateUserRequest struct {
 
 func (s *userService) CreateUser(ctx *gin.Context, req models.User) (models.User, string, error) {
 
-	location, err := utils.GetLocation(*req.Latitude, *req.Longitude)
-	if err != nil {
-		return models.User{}, "", err
-	}
+	if req.Latitude != nil && req.Longitude != nil {
+		location, err := utils.GetLocation(*req.Latitude, *req.Longitude)
+		if err != nil {
+			return models.User{}, "", err
+		}
 
-	req.City = &location.Address.City
-	req.State = &location.Address.State
-	req.Country = &location.Address.Country
-	req.Pincode = &location.Address.Postcode
-	address := (location.Address.HouseNumber + ", " + location.Address.Road + ", " + location.Address.City + ", " + location.Address.State + ", " + location.Address.Country)
-	req.Address = &address
+		req.City = &location.Address.City
+		req.State = &location.Address.State
+		req.Country = &location.Address.Country
+		req.Pincode = &location.Address.Postcode
+		address := (location.Address.HouseNumber + ", " + location.Address.Road + ", " + location.Address.City + ", " + location.Address.State + ", " + location.Address.Country)
+		req.Address = &address
+	}
 
 	createdUser, err := s.userRepository.CreateUser(req)
 	if err != nil {
@@ -57,17 +59,22 @@ func (s *userService) GetUserByEmail(ctx *gin.Context, email string) (models.Use
 }
 
 func (s *userService) UpdateUser(ctx *gin.Context, req models.User) (models.User, error) {
-	location, err := utils.GetLocation(*req.Latitude, *req.Longitude)
-	if err != nil {
-		return models.User{}, err
-	}
 
-	req.City = &location.Address.City
-	req.State = &location.Address.State
-	req.Country = &location.Address.Country
-	req.Pincode = &location.Address.Postcode
-	address := (location.Address.HouseNumber + ", " + location.Address.Road + ", " + location.Address.City + ", " + location.Address.State + ", " + location.Address.Country)
-	req.Address = &address
+	if req.Latitude != nil && req.Longitude != nil {
+
+		location, err := utils.GetLocation(*req.Latitude, *req.Longitude)
+		if err != nil {
+			return models.User{}, err
+		}
+
+		req.City = &location.Address.City
+		req.State = &location.Address.State
+		req.Country = &location.Address.Country
+		req.Pincode = &location.Address.Postcode
+		address := (location.Address.HouseNumber + ", " + location.Address.Road + ", " + location.Address.City + ", " + location.Address.State + ", " + location.Address.Country)
+
+		req.Address = &address
+	}
 	updatedUser, err := s.userRepository.UpdateUser(req)
 	if err != nil {
 		return models.User{}, err
