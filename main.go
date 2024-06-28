@@ -95,7 +95,6 @@ func main() {
 
 	go service.GrpcServer(cfg, &service.Server{UserRepository: userRepository, UserService: userService})
 
-	
 	// Initialize HTTP server with Gin
 	router := gin.Default()
 	handler := handlers.NewHandler(&userService)
@@ -184,45 +183,49 @@ func consumeKafka(userRepo repository.UserRepository, notificationProducer *kafk
 			fmt.Printf("Order received: %+v ", order)
 
 			userData, err := userRepo.GetUserByID(order.Customer.UserDataId)
-			if err != nil {
-				fmt.Println("Error getting FCM token: ", err)
-			}
 			fcm := userData.NotificationToken
-
-			fmt.Println("FCM token: ", fcm)
-
-			notificationMessage := ""
-
-			if order.OrderStatus == "accepted" {
-				notificationMessage = "Your order has been accepted"
-			} else if order.OrderStatus == "cancelled" {
-				notificationMessage = "Your order has been cancelled"
-			} else if order.OrderStatus == "out_for_delivery" {
-				notificationMessage = "Your order is out for delivery"
-			} else if order.OrderStatus == "delivered" {
-				notificationMessage = "Your order has been delivered"
-			} else if order.OrderStatus == "rejected" {
-				notificationMessage = "Your order has been rejected"
+			if err != nil || fcm != nil {
+				fmt.Println("Error getting FCM token: ", err)
+				//don't send notification
+				// continue
 			} else {
-				notificationMessage = "Your order has been placed"
+
+				fmt.Println("FCM token: ", fcm)
+
+				notificationMessage := ""
+
+				if order.OrderStatus == "accepted" {
+					notificationMessage = "Your order has been accepted"
+				} else if order.OrderStatus == "cancelled" {
+					notificationMessage = "Your order has been cancelled"
+				} else if order.OrderStatus == "out_for_delivery" {
+					notificationMessage = "Your order is out for delivery"
+				} else if order.OrderStatus == "delivered" {
+					notificationMessage = "Your order has been delivered"
+				} else if order.OrderStatus == "rejected" {
+					notificationMessage = "Your order has been rejected"
+				} else {
+					notificationMessage = "Your order has been placed"
+				}
+
+				notificationMsg, _ := json.Marshal(Notification{
+					Message:  notificationMessage,
+					FCMToken: *fcm,
+
+					Data: fmt.Sprintf(`{"order_id": "%s", "status": "%s"}`, order.ID, order.OrderStatus),
+				})
+
+				notificationTopic := "notification"
+
+				// send a notification to the store
+				notificationProducer.Produce(&kafka.Message{
+					TopicPartition: kafka.TopicPartition{Topic: &notificationTopic, Partition: kafka.PartitionAny},
+					Value:          notificationMsg,
+				}, nil)
+
+				notificationProducer.Flush(15 * 1000)
+
 			}
-
-			notificationMsg, _ := json.Marshal(Notification{
-				Message:  notificationMessage,
-				FCMToken: *fcm,
-				Data:     fmt.Sprintf(`{"order_id": "%s", "status": "%s"}`, order.ID, order.OrderStatus),
-			})
-
-			notificationTopic := "notification"
-
-			// send a notification to the store
-			notificationProducer.Produce(&kafka.Message{
-				TopicPartition: kafka.TopicPartition{Topic: &notificationTopic, Partition: kafka.PartitionAny},
-				Value:          notificationMsg,
-			}, nil)
-
-			notificationProducer.Flush(15 * 1000)
-
 		case kafka.Error:
 			fmt.Fprintf(os.Stderr, "%% Error: %v\n", ev)
 			run = false
