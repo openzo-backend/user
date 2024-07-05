@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gin-gonic/gin"
@@ -163,200 +164,112 @@ func consumeKafka(userRepo repository.UserRepository, notificationProducer *kafk
 	conf["group.id"] = "UserGroup"
 	conf["auto.offset.reset"] = "earliest"
 
-	// Create a new consumer and subscribe to the topic
-	consumer, err := kafka.NewConsumer(&conf)
-	if err != nil {
-		log.Fatalf("Failed to create consumer: %v", err)
-	}
-	defer consumer.Close()
-
-	err = consumer.SubscribeTopics([]string{topic}, nil)
-	if err != nil {
-		log.Fatalf("Failed to subscribe to topic: %v", err)
-	}
-
-	var order data
-	run := true
-
-	for run {
-		// Poll for new messages
-		event := consumer.Poll(1000)
-		if event == nil {
-			continue
+	for {
+		consumer, err := kafka.NewConsumer(&conf)
+		if err != nil {
+			log.Fatalf("Failed to create consumer: %v", err)
 		}
 
-		switch e := event.(type) {
-		case *kafka.Message:
-			log.Printf("Message on %s: %s\n", e.TopicPartition, string(e.Value))
+		err = consumer.SubscribeTopics([]string{topic}, nil)
+		if err != nil {
+			log.Fatalf("Failed to subscribe to topic: %v", err)
+		}
 
-			// Unmarshal the message into the order struct
-			err := json.Unmarshal(e.Value, &order)
-			if err != nil {
-				log.Printf("Error unmarshalling JSON: %v", err)
+		var order data
+
+		run := true
+		for run {
+			// Poll for new messages
+			event := consumer.Poll(1000)
+			if event == nil {
 				continue
 			}
 
-			log.Printf("Order received: %+v", order)
+			switch e := event.(type) {
+			case *kafka.Message:
+				log.Printf("Message on %s: %s\n", e.TopicPartition, string(e.Value))
 
-			// Validate the order data
-			if order.Type != "online_order" || order.OrderStatus == "" || order.Customer.UserDataId == "" || order.OrderStatus == "not_placed" {
-				continue
-			}
+				// Unmarshal the message into the order struct
+				err := json.Unmarshal(e.Value, &order)
+				if err != nil {
+					log.Printf("Error unmarshalling JSON: %v", err)
+					continue
+				}
 
-			// Fetch the user data
-			userData, err := userRepo.GetUserByID(order.Customer.UserDataId)
-			if err != nil {
-				log.Printf("Error getting user data: %v", err)
-				continue
-			}
+				log.Printf("Order received: %+v", order)
 
-			if userData.NotificationToken == nil {
-				log.Printf("User does not have an FCM token")
-				continue
-			}
+				// Validate the order data
+				if order.Type != "online_order" || order.OrderStatus == "" || order.Customer.UserDataId == "" || order.OrderStatus == "not_placed" {
+					continue
+				}
 
-			// Construct the notification message
-			var notificationMessage string
-			switch order.OrderStatus {
-			case "accepted":
-				notificationMessage = "Your order has been accepted"
-			case "cancelled":
-				notificationMessage = "Your order has been cancelled"
-			case "out_for_delivery":
-				notificationMessage = "Your order is out for delivery"
-			case "delivered":
-				notificationMessage = "Your order has been delivered"
-			case "rejected":
-				notificationMessage = "Your order has been rejected"
+				// Fetch the user data
+				userData, err := userRepo.GetUserByID(order.Customer.UserDataId)
+				if err != nil {
+					log.Printf("Error getting user data: %v", err)
+					continue
+				}
+
+				if userData.NotificationToken == nil {
+					log.Printf("User does not have an FCM token")
+					continue
+				}
+
+				// Construct the notification message
+				var notificationMessage string
+				switch order.OrderStatus {
+				case "accepted":
+					notificationMessage = "Your order has been accepted"
+				case "cancelled":
+					notificationMessage = "Your order has been cancelled"
+				case "out_for_delivery":
+					notificationMessage = "Your order is out for delivery"
+				case "delivered":
+					notificationMessage = "Your order has been delivered"
+				case "rejected":
+					notificationMessage = "Your order has been rejected"
+				default:
+					notificationMessage = "Your order has been placed"
+				}
+
+				notification := Notification{
+					Message:  notificationMessage,
+					FCMToken: *userData.NotificationToken,
+					Data:     fmt.Sprintf(`{"order_id": "%s", "status": "%s"}`, order.ID, order.OrderStatus),
+				}
+
+				notificationMsg, err := json.Marshal(notification)
+				if err != nil {
+					log.Printf("Error marshalling notification: %v", err)
+					continue
+				}
+
+				notificationTopic := "notification"
+
+				// Send the notification
+				err = notificationProducer.Produce(&kafka.Message{
+					TopicPartition: kafka.TopicPartition{Topic: &notificationTopic, Partition: kafka.PartitionAny},
+					Value:          notificationMsg,
+				}, nil)
+				if err != nil {
+					log.Printf("Error producing notification: %v", err)
+					continue
+				}
+
+				notificationProducer.Flush(15000)
+
+			case kafka.Error:
+				log.Printf("Kafka error: %v", e)
+				run = false
 			default:
-				notificationMessage = "Your order has been placed"
+				log.Printf("Ignored event: %v", e)
 			}
 
-			notification := Notification{
-				Message:  notificationMessage,
-				FCMToken: *userData.NotificationToken,
-				Data:     fmt.Sprintf(`{"order_id": "%s", "status": "%s"}`, order.ID, order.OrderStatus),
-			}
-
-			notificationMsg, err := json.Marshal(notification)
-			if err != nil {
-				log.Printf("Error marshalling notification: %v", err)
-				continue
-			}
-
-			notificationTopic := "notification"
-
-			// Send the notification
-			err = notificationProducer.Produce(&kafka.Message{
-				TopicPartition: kafka.TopicPartition{Topic: &notificationTopic, Partition: kafka.PartitionAny},
-				Value:          notificationMsg,
-			}, nil)
-			if err != nil {
-				log.Printf("Error producing notification: %v", err)
-				continue
-			}
-
-			notificationProducer.Flush(15000)
-
-		case kafka.Error:
-			log.Printf("Kafka error: %v", e)
-			run = false
-		default:
-			log.Printf("Ignored event: %v", e)
 		}
+
+		log.Println("Consumer disconnected. Reconnecting in 5 seconds...")
+		consumer.Close()
+		time.Sleep(5 * time.Second)
 	}
 
-	// Closing the consumer connection
-	err = consumer.Close()
-	if err != nil {
-		log.Printf("Error closing consumer: %v", err)
-	}
 }
-
-// func consumeKafka(userRepo repository.UserRepository, notificationProducer *kafka.Producer) {
-// 	conf := ReadConfig()
-// 	topic := "sales"
-
-// 	// sets the consumer group ID and offset
-// 	conf["group.id"] = "UserGroup"
-// 	conf["auto.offset.reset"] = "earliest"
-
-// 	// creates a new consumer and subscribes to your topic
-// 	consumer, _ := kafka.NewConsumer(&conf)
-// 	consumer.SubscribeTopics([]string{topic}, nil)
-
-// 	var order data
-
-// 	run := true
-// 	for run {
-// 		// consumes messages from the subscribed topic and prints them to the console
-// 		e := consumer.Poll(1000)
-// 		switch ev := e.(type) {
-// 		case *kafka.Message:
-// 			// application-specific processing
-// 			log.Printf("Message on %s: %s\n", ev.TopicPartition, string(ev.Value))
-// 			err := json.Unmarshal(ev.Value, &order)
-// 			if err != nil {
-// 				fmt.Println("Error unmarshalling JSON: ", err)
-// 				continue
-// 			}
-
-// 			fmt.Printf("Order received: %+v ", order)
-
-// 			if order.Type != "online_order" || order.OrderStatus == "" || order.Customer.UserDataId == "" || order.OrderStatus == "not_placed" {
-
-// 				continue
-// 			}
-
-// 			userData, err := userRepo.GetUserByID(order.Customer.UserDataId)
-// 			fcm := userData.NotificationToken
-// 			if err != nil || fcm == nil {
-// 				fmt.Println("Error getting FCM token: ", err)
-// 				continue
-// 			}
-
-// 			fmt.Println("FCM token: ", fcm)
-
-// 			notificationMessage := ""
-
-// 			if order.OrderStatus == "accepted" {
-// 				notificationMessage = "Your order has been accepted"
-// 			} else if order.OrderStatus == "cancelled" {
-// 				notificationMessage = "Your order has been cancelled"
-// 			} else if order.OrderStatus == "out_for_delivery" {
-// 				notificationMessage = "Your order is out for delivery"
-// 			} else if order.OrderStatus == "delivered" {
-// 				notificationMessage = "Your order has been delivered"
-// 			} else if order.OrderStatus == "rejected" {
-// 				notificationMessage = "Your order has been rejected"
-// 			} else {
-// 				notificationMessage = "Your order has been placed"
-// 			}
-
-// 			notificationMsg, _ := json.Marshal(Notification{
-// 				Message:  notificationMessage,
-// 				FCMToken: *fcm,
-
-// 				Data: fmt.Sprintf(`{"order_id": "%s", "status": "%s"}`, order.ID, order.OrderStatus),
-// 			})
-
-// 			notificationTopic := "notification"
-
-// 			// send a notification to the store
-// 			notificationProducer.Produce(&kafka.Message{
-// 				TopicPartition: kafka.TopicPartition{Topic: &notificationTopic, Partition: kafka.PartitionAny},
-// 				Value:          notificationMsg,
-// 			}, nil)
-
-// 			notificationProducer.Flush(15 * 1000)
-
-// 		case kafka.Error:
-// 			fmt.Fprintf(os.Stderr, "%% Error: %v\n", ev)
-// 			run = false
-// 		}
-// 	}
-
-// 	// closes the consumer connection
-// 	consumer.Close()
-
-// }
