@@ -87,9 +87,10 @@ func (s *otpService) VerifyOTP(ctx *gin.Context, phone string, verificationId st
 			user = createdUser
 		}
 
-	} else if userId != "" && user.ID != userId {
-		return "", errors.New("phone number already exists")
 	}
+	// else if userId != "" && user.ID != userId {
+	// 	return "", errors.New("phone number already exists")
+	// }
 	user.IsVerified = true
 	user.Phone = phone
 
