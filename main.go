@@ -198,8 +198,12 @@ func consumeKafka(userRepo repository.UserRepository, notificationProducer *kafk
 
 				log.Printf("Order received: %+v", order)
 
+				if order.Type != "booking" && order.Type != "online_order" {
+					continue
+				}
+
 				// Validate the order data
-				if order.Type != "online_order" || order.OrderStatus == "" || order.Customer.UserDataId == "" || order.OrderStatus == "not_placed" {
+				if order.OrderStatus == "" || order.Customer.UserDataId == "" || order.OrderStatus == "not_placed" {
 					continue
 				}
 
@@ -216,20 +220,38 @@ func consumeKafka(userRepo repository.UserRepository, notificationProducer *kafk
 				}
 
 				// Construct the notification message
+
 				var notificationMessage string
-				switch order.OrderStatus {
-				case "accepted":
-					notificationMessage = "Your order has been accepted"
-				case "cancelled":
-					notificationMessage = "Your order has been cancelled"
-				case "out_for_delivery":
-					notificationMessage = "Your order is out for delivery"
-				case "delivered":
-					notificationMessage = "Your order has been delivered"
-				case "rejected":
-					notificationMessage = "Your order has been rejected"
-				default:
-					notificationMessage = "Your order has been placed"
+
+				if order.Type == "booking" {
+					switch order.OrderStatus {
+					case "accepted":
+						notificationMessage = "Your booking has been accepted"
+					case "cancelled":
+						notificationMessage = "Your booking has been cancelled"
+					case "rejected":
+						notificationMessage = "Your booking has been rejected"
+					case "completed":
+						notificationMessage = "Your booking has been completed"
+					default:
+						notificationMessage = "Your booking has been placed"
+					}
+				} else {
+
+					switch order.OrderStatus {
+					case "accepted":
+						notificationMessage = "Your order has been accepted"
+					case "cancelled":
+						notificationMessage = "Your order has been cancelled"
+					case "out_for_delivery":
+						notificationMessage = "Your order is out for delivery"
+					case "delivered":
+						notificationMessage = "Your order has been delivered"
+					case "rejected":
+						notificationMessage = "Your order has been rejected"
+					default:
+						notificationMessage = "Your order has been placed"
+					}
 				}
 
 				notification := Notification{
