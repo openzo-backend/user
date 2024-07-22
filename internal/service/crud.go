@@ -27,6 +27,13 @@ func (s *userService) CreateUser(ctx *gin.Context, req models.User) (models.User
 		req.Address = &address
 	}
 
+	hashedPassword, err := utils.HashPassword(*req.Password)
+	if err != nil {
+		return models.User{}, "", err
+	}
+
+	req.Password = &hashedPassword
+
 	createdUser, err := s.userRepository.CreateUser(req)
 	if err != nil {
 		return models.User{}, "", err // Propagate error
@@ -60,6 +67,13 @@ func (s *userService) GetUserByEmail(ctx *gin.Context, email string) (models.Use
 
 func (s *userService) UpdateUser(ctx *gin.Context, req models.User) (models.User, error) {
 
+	var user models.User
+
+	user, err := s.userRepository.GetUserByID(req.ID)
+	if err != nil {
+		return models.User{}, err
+	}
+
 	if req.Latitude != nil && req.Longitude != nil {
 
 		location, err := utils.GetLocation(*req.Latitude, *req.Longitude)
@@ -75,6 +89,7 @@ func (s *userService) UpdateUser(ctx *gin.Context, req models.User) (models.User
 
 		req.Address = &address
 	}
+	req.Password = user.Password
 	updatedUser, err := s.userRepository.UpdateUser(req)
 	if err != nil {
 		return models.User{}, err

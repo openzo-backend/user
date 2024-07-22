@@ -2,31 +2,43 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tanush-128/openzo_backend/user/internal/models"
+	"github.com/tanush-128/openzo_backend/user/internal/utils"
 )
 
 type UserSignInRequest struct {
-	Mobile string `json:"mobile"`
-	Otp    string `json:"otp"`
+	Mobile   string `json:"mobile"`
+	Password string `json:"password"`
+	// Otp    string `json:"otp"`
+
 }
 
 func (s *userService) UserSignIn(ctx *gin.Context, req UserSignInRequest) (string, error) {
-	// Validate user data (implement validation logic)
-	if req.Mobile == "" {
-		return "", errors.New("invalid request")
-	}
 
-	// Get user by mobile
 	user, err := s.userRepository.GetUserByMobile(req.Mobile)
 	if err != nil {
 		return "", err
 	}
 
-	// Create JWT token
+	password := ""
+	if user.Password != nil {
+		password = *user.Password
+		fmt.Println(password)
+	}
+
+	if password != "" {
+		err = utils.CheckPasswordHash(req.Password, password)
+
+		if err != nil {
+			return "", errors.New("invalid password")
+		}
+	}
+
 	token, err := CreateJwtToken(user.ID)
 	if err != nil {
 		return token, err
@@ -35,7 +47,6 @@ func (s *userService) UserSignIn(ctx *gin.Context, req UserSignInRequest) (strin
 	return token, nil
 }
 
-// GetUserWithJWT(ctx *gin.Context, token string) (models.User, error)
 func (s *userService) GetUserWithJWT(ctx *gin.Context, token string) (models.User, error) {
 	_user := ctx.MustGet("user").(map[string]interface{})
 	_id := _user["user_id"].(string)

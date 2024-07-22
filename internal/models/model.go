@@ -2,38 +2,12 @@ package models
 
 import "time"
 
-// import "github.com/google/uuid"
-
-// import
-
-// User represents a user in the system
-// type User struct {
-// 	ID       string `gorm:"primaryKey"`
-// 	Email    string
-// 	Name     string
-// 	Password string
-// 	Phone    string `binding:"required" gorm:"unique"`
-// }
-
 type OTP struct {
 	ID        string `gorm:"primaryKey"`
 	Phone     string
 	HashedOTP string
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
-
-// type UserData struct {
-// 	Id                string `json:"id" gorm:"primaryKey"`
-// 	UserId            string `json:"user_id"`
-// 	Latitude          string `json:"latitude"`
-// 	Longitude         string `json:"longitude"`
-// 	Address           string `json:"address"`
-// 	Pincode           string `json:"pincode"`
-// 	City              string `json:"city"`
-// 	State             string `json:"state"`
-// 	Country           string `json:"country"`
-// 	NotificationToken string `json:"notification_token"`
-// }
 
 type User struct {
 	ID                string  `gorm:"primaryKey" json:"id"`
@@ -52,12 +26,6 @@ type User struct {
 	IsVerified        bool    `json:"is_verified"`
 	CreatedAt         time.Time
 }
-
-// type LoggedInUser struct {
-// 	UserID    string `gorm:"primaryKey"`
-// 	Preferences map[string]interface{}
-// 	// Add other fields specific to logged-in users
-// }
 
 type Customer struct {
 	ID         int    `json:"id"`
