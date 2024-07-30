@@ -64,7 +64,7 @@ func CreateJwtToken(id string) (string, error) {
 
 	claims["authorized"] = true
 	claims["user_id"] = id
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	claims["exp"] = time.Now().Add(time.Hour * 24 * 15).Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte("secret"))
