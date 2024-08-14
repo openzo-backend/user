@@ -2,11 +2,16 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/tanush-128/openzo_backend/user/config"
 	"github.com/tanush-128/openzo_backend/user/internal/models"
 	"github.com/tanush-128/openzo_backend/user/internal/repository"
 	"github.com/tanush-128/openzo_backend/user/internal/utils"
@@ -15,24 +20,29 @@ import (
 type OTPService interface {
 	GenerateOTP(ctx *gin.Context, phoneNo string) (string, error)
 	VerifyOTP(ctx *gin.Context, phone string, verificationId string, otp string, userId string) (string, error)
+	SendOTP(phoneNo string, otp string)
 }
 
 type otpService struct {
 	otpRepository  repository.OTPRepository
 	userRepository repository.UserRepository
+	cfg            *config.Config
 }
 
 func NewOTPService(otpRepository repository.OTPRepository,
 	userRepository repository.UserRepository,
+	cfg *config.Config,
 ) OTPService {
-	return &otpService{otpRepository: otpRepository, userRepository: userRepository}
+	return &otpService{otpRepository: otpRepository, userRepository: userRepository, cfg: cfg}
 }
 
 func (s *otpService) GenerateOTP(ctx *gin.Context, phoneNo string) (string, error) {
 	var otp models.OTP
 	otp.Phone = phoneNo
 
-	otp_number := 123456
+	otp_number := generatedRandomOTP()
+	fmt.Println(otp_number)
+	go s.SendOTP(phoneNo, strconv.Itoa(otp_number))
 	otp.HashedOTP = utils.HashNumberWithSecret(otp_number, "secret")
 
 	generatedOTP, err := s.otpRepository.CreateOTP(otp)
@@ -41,6 +51,13 @@ func (s *otpService) GenerateOTP(ctx *gin.Context, phoneNo string) (string, erro
 	}
 
 	return generatedOTP.ID, nil
+}
+
+func generatedRandomOTP() int {
+	random := 1000 + rand.Intn(9000)
+
+	return random
+	// return strconv.Itoa(random)
 }
 
 func (s *otpService) VerifyOTP(ctx *gin.Context, phone string, verificationId string, otp string, userId string) (string, error) {
@@ -105,4 +122,31 @@ func (s *otpService) VerifyOTP(ctx *gin.Context, phone string, verificationId st
 	}
 
 	return token, nil
+}
+
+func (s *otpService) SendOTP(phoneNo string, otp string) {
+	// url := "https://2factor.in/API/V1/fae85dd6-50a7-11ef-8b60-0200cd936042/SMS/+919999999999/12345/OTP1"
+	url := "https://2factor.in/API/V1/" + s.cfg.SMS_API_KEY + "/SMS/" + phoneNo + "/" + otp + "/OTP 1"
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, nil)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(body))
 }

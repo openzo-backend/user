@@ -15,10 +15,11 @@ type CommonConfig struct {
 	ProductGrpc      string `mapstructure:"PRODUCT_GRPC"`
 }
 type Config struct {
-	MODE     string `mapstructure:"MODE"`
-	DB_URL   string `mapstructure:"DB_URL"`
-	HTTPPort string `mapstructure:"HTTP_PORT"`
-	GRPCPort string `mapstructure:"GRPC_PORT"`
+	MODE        string `mapstructure:"MODE"`
+	DB_URL      string `mapstructure:"DB_URL"`
+	HTTPPort    string `mapstructure:"HTTP_PORT"`
+	GRPCPort    string `mapstructure:"GRPC_PORT"`
+	SMS_API_KEY string `mapstructure:"SMS_API_KEY"`
 
 	CommonConfig `mapstructure:",squash"`
 }

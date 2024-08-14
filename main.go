@@ -69,7 +69,7 @@ func main() {
 
 	userService := service.NewUserService(userRepository)
 
-	otpService := service.NewOTPService(otpRepository, userRepository)
+	otpService := service.NewOTPService(otpRepository, userRepository, cfg)
 
 	conf := ReadConfig()
 	p, _ := kafka.NewProducer(&conf)
