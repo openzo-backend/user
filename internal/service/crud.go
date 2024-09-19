@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tanush-128/openzo_backend/user/internal/models"
 	"github.com/tanush-128/openzo_backend/user/internal/utils"
@@ -74,7 +76,7 @@ func (s *userService) UpdateUser(ctx *gin.Context, req models.User) (models.User
 		return models.User{}, err
 	}
 
-	if req.Latitude != nil && req.Longitude != nil {
+	if (req.Latitude != nil && req.Longitude != nil) && (user.Pincode == nil) {
 
 		location, err := utils.GetLocation(*req.Latitude, *req.Longitude)
 		if err != nil {
@@ -88,6 +90,20 @@ func (s *userService) UpdateUser(ctx *gin.Context, req models.User) (models.User
 		address := (location.Address.HouseNumber + ", " + location.Address.Road + ", " + location.Address.City + ", " + location.Address.State + ", " + location.Address.Country)
 
 		req.Address = &address
+	} else if user.Pincode != req.Pincode {
+		locations, err := utils.GetLocationByPincode(*req.Pincode)
+		if err != nil {
+			return models.User{}, err
+		}
+		location := locations[0]
+
+		req.Address = &location.DisplayName
+		req.Latitude = &location.Lat
+		req.Longitude = &location.Lon
+		city := strings.Split(location.DisplayName, ", ")[0]
+		req.City = &city
+		req.State = &strings.Split(location.DisplayName, ", ")[3]
+
 	}
 	req.Password = user.Password
 	updatedUser, err := s.userRepository.UpdateUser(req)

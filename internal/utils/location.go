@@ -73,3 +73,55 @@ func GetLocation(lat string, lon string) (Location, error) {
 	fmt.Printf("%+v\n", location)
 	return location, nil
 }
+
+type LocationByPincode struct {
+	PlaceID     int      `json:"place_id"`
+	Lat         string   `json:"lat"`
+	Lon         string   `json:"lon"`
+	DisplayName string   `json:"display_name"`
+	BoundingBox []string `json:"boundingbox"`
+	Class       string   `json:"class"`
+	Type        string   `json:"type"`
+	PlaceRank   int      `json:"place_rank"`
+	Importance  float64  `json:"importance"`
+	AddressType string   `json:"addresstype"`
+	Name        string   `json:"name"`
+}
+
+func GetLocationByPincode(pincode string) ([]LocationByPincode, error) {
+	url := fmt.Sprintf("https://nominatim.openstreetmap.org/search?q=%s&format=json", pincode)
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	responseBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	var locations []LocationByPincode
+	err = json.Unmarshal(responseBody, &locations)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	for _, location := range locations {
+		fmt.Printf("%+v\n", location)
+	}
+
+	return locations, nil
+}
