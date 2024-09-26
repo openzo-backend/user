@@ -52,9 +52,15 @@ func (s *Server) GetUserWithJWT(ctx context.Context, req *userpb.Token) (*userpb
 		return nil, err
 	}
 
+	role := userpb.Role_USER
+	if user.Role == "ADMIN" {
+		role = userpb.Role_ADMIN
+	}
+
 	return &userpb.User{
 		Id:         user.ID,
 		Phone:      user.Phone,
 		IsVerified: user.IsVerified,
+		Role:       role,
 	}, nil
 }

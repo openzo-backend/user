@@ -25,6 +25,7 @@ type User struct {
 	NotificationToken *string `json:"notification_token,omitempty"`
 	IsVerified        bool    `json:"is_verified"`
 	CreatedAt         time.Time
+	Role              string `json:"role" gorm:"default:'USER'"`
 }
 
 type Customer struct {

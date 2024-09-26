@@ -23,12 +23,17 @@ message Token {
   string token = 1;
 }
 
+enum Role {
+  ADMIN = 0;
+  USER = 1;
+}
 
 
 message User {
   string id = 1;
   string phone = 3;
   bool is_verified = 4;
+  Role role = 5;
 }
 
 // To generate the go code from the proto file, run the following command
