@@ -106,6 +106,7 @@ func (s *userService) UpdateUser(ctx *gin.Context, req models.User) (models.User
 
 	}
 	req.Password = user.Password
+	req.Role = user.Role
 	updatedUser, err := s.userRepository.UpdateUser(req)
 	if err != nil {
 		return models.User{}, err
