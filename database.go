@@ -38,6 +38,7 @@ func connectToDB(cfg *config.Config) (*gorm.DB, error) {
 	db.Migrator().AutoMigrate(&models.User{})
 
 	db.Migrator().AutoMigrate(&models.OTP{})
+	db.Migrator().AutoMigrate(&models.Address{})
 
 	return db, nil
 }

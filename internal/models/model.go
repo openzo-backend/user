@@ -26,6 +26,24 @@ type User struct {
 	IsVerified        bool    `json:"is_verified"`
 	CreatedAt         time.Time
 	Role              string `json:"role" gorm:"default:'USER'"`
+	DefaultAddress    string `json:"default_address"`
+}
+
+type Address struct {
+	ID             string `gorm:"primaryKey" json:"id"`
+	UserId         string `json:"user_id"`
+	Name           string `json:"name"`
+	PhoneNo        string `json:"phone_no"`
+	Tag            string `json:"tag"`
+	Area           string `json:"area"`
+	Building       string `json:"building"`
+	NearbyLandmark string `json:"nearby_landmark"`
+	Address        string `json:"address"`
+	Pincode        string `json:"pincode"`
+	City           string `json:"city"`
+	State          string `json:"state"`
+	Latitude       string `json:"latitude"`
+	Longitude      string `json:"longitude"`
 }
 
 type Customer struct {

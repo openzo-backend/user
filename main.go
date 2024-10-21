@@ -71,34 +71,38 @@ func main() {
 
 	otpService := service.NewOTPService(otpRepository, userRepository, cfg)
 
-	conf := ReadConfig()
-	p, _ := kafka.NewProducer(&conf)
-	// topic := "notification"
+	addressRepository := repository.NewAddressRepository(db)
+	addressService := service.NewAddressService(addressRepository)
 
-	// go-routine to handle message delivery reports and
-	// possibly other event types (errors, stats, etc)
-	go func() {
-		for e := range p.Events() {
-			switch ev := e.(type) {
-			case *kafka.Message:
-				if ev.TopicPartition.Error != nil {
-					fmt.Printf("Failed to deliver message: %v\n", ev.TopicPartition)
-				} else {
-					fmt.Printf("Produced event to topic %s: key = %-10s value = %s\n",
-						*ev.TopicPartition.Topic, string(ev.Key), string(ev.Value))
+	conf := ReadConfig()
+	if cfg.MODE == "productio" {
+		p, _ := kafka.NewProducer(&conf)
+		// topic := "notification"
+
+		// go-routine to handle message delivery reports and
+		// possibly other event types (errors, stats, etc)
+		go func() {
+			for e := range p.Events() {
+				switch ev := e.(type) {
+				case *kafka.Message:
+					if ev.TopicPartition.Error != nil {
+						fmt.Printf("Failed to deliver message: %v\n", ev.TopicPartition)
+					} else {
+						fmt.Printf("Produced event to topic %s: key = %-10s value = %s\n",
+							*ev.TopicPartition.Topic, string(ev.Key), string(ev.Value))
+					}
 				}
 			}
-		}
-	}()
-
-	go consumeKafka(userRepository, p)
-
+		}()
+		go consumeKafka(userRepository, p)
+	}
 	go service.GrpcServer(cfg, &service.Server{UserRepository: userRepository, UserService: userService})
 
 	// Initialize HTTP server with Gin
 	router := gin.Default()
 	handler := handlers.NewHandler(&userService)
 	otp_handler := handlers.NewOTPHandler(&otpService)
+	address_handler := handlers.NewAddressHandler(&addressService)
 
 	// Prometheus metrics endpoint
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
@@ -117,6 +121,11 @@ func main() {
 
 	router.POST("/otp", measureMetrics("/otp", "POST", otp_handler.GenerateOTP))
 	router.POST("/otp/verify", measureMetrics("/otp/verify", "POST", otp_handler.VerifyOTP))
+
+	router.POST("/address", measureMetrics("/address", "POST", address_handler.CreateAddress))
+	router.GET("/address/:id", measureMetrics("/address/:id", "GET", address_handler.GetAddressByID))
+	router.GET("/address/user/:user_id", measureMetrics("/address/user/:user_id", "GET", address_handler.GetAddressesByUserID))
+	router.PUT("/address", measureMetrics("/address", "PUT", address_handler.UpdateAddress))
 
 	router.Use(middlewares.JwtMiddleware)
 	router.GET("/jwt", measureMetrics("/jwt", "GET", handler.GetUserWithJWT))
